@@ -1,139 +1,166 @@
-import pygame
-import sys
-import math
+import tkinter as tk
+import random
 
-class SierpinskiTriangle:
-    def __init__(self):
+class DeadlockDetectionGUI:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Deadlock Detection")
+        self.processes = 3
+        self.resources = 4
+        self.allocate_matrix = [[0, 1, 0, 1],
+                                [1, 0, 1, 0],
+                                [0, 1, 0, 1]]
+        self.request_matrix = [[1, 0, 1, 0],
+                               [0, 1, 0, 1],
+                               [1, 0, 1, 0]]
+        self.resources_available = [2, 2, 2, 2]
 
-        #these are the variables
-        #initialized with functions from pygame
+        self.create_widgets()
 
-        self.width, self.height = 800, 600
-        self.background_color = (255, 255, 255)
-        self.border_color = (0, 0, 0)
-        self.text_color = (0, 0, 0)
-        self.depth_limit = 6
-        self.animation_speed = 0.05
-        self.triangle_count = 0
-        self.footer_text = "Talal Ali Khan | Roll: 01-134212-183 | Moez Mustafa | Roll: 01-134212-088"
+    def create_widgets(self):
+        tk.Label(self.root, text="Allocation Matrix").pack()
 
+        self.allocate_frame = tk.Frame(self.root)
+        self.allocate_frame.pack()
 
-        #this is the pygame function
-        pygame.init()
-        self.screen = pygame.display.set_mode((self.width, self.height))
-        pygame.display.set_caption("Sierpinski Triangle")
-        self.clock = pygame.time.Clock()
-        self.font = pygame.font.Font(None, 24)
-        self.log_font = pygame.font.Font(None, 18)
+        for i in range(self.processes):
+            row = []
+            for j in range(self.resources):
+                entry = tk.Entry(self.allocate_frame, width=5)
+                entry.insert(tk.END, self.allocate_matrix[i][j])
+                entry.configure(state='readonly')
+                entry.pack(side=tk.LEFT)
+                row.append(entry)
+            self.allocate_matrix.append(row)
 
-        #this is the function to draw the triangle
-    def draw_triangle(self, vertices, color):
-        pygame.draw.polygon(self.screen, color, vertices, 1)
-        pygame.draw.lines(self.screen, self.border_color, True, vertices, 1)
+        tk.Label(self.root, text="\nRequest Matrix").pack()
 
-        #this is the function to draw the number
-    def draw_number(self, vertices, number):
-        text = self.font.render(str(number), True, self.text_color)
-        centroid = [(vertices[0][0] + vertices[1][0] + vertices[2][0]) // 3,
-                    (vertices[0][1] + vertices[1][1] + vertices[2][1]) // 3]
-        self.screen.blit(text, centroid)
+        self.request_frame = tk.Frame(self.root)
+        self.request_frame.pack()
 
-        #this is the function to draw the sierpinski triangle
-    def sierpinski(self, vertices, depth, number, color_index):
-        if depth > 0:
-            self.draw_triangle(vertices, self.border_color)
-            self.draw_number(vertices, number)
+        for i in range(self.processes):
+            row = []
+            for j in range(self.resources):
+                entry = tk.Entry(self.request_frame, width=5)
+                entry.insert(tk.END, self.request_matrix[i][j])
+                entry.configure(state='readonly')
+                entry.pack(side=tk.LEFT)
+                row.append(entry)
+            self.request_matrix.append(row)
 
-            v1 = ((vertices[0][0] + vertices[1][0]) // 2, (vertices[0][1] + vertices[1][1]) // 2)
-            v2 = ((vertices[1][0] + vertices[2][0]) // 2, (vertices[1][1] + vertices[2][1]) // 2)
-            v3 = ((vertices[2][0] + vertices[0][0]) // 2, (vertices[2][1] + vertices[0][1]) // 2)
+        tk.Label(self.root, text="\nResource Availability").pack()
 
-            self.sierpinski([vertices[0], v1, v3], depth - 1, number * 3, color_index + 1)
-            self.sierpinski([v1, vertices[1], v2], depth - 1, number * 3 + 1, color_index + 1)
-            self.sierpinski([v3, v2, vertices[2]], depth - 1, number * 3 + 2, color_index + 1)
-        
-        #this is the function to run the game
-    def game(self):
-        vertices = [(self.width // 2, 50), (50, self.height - 50), (self.width - 50, self.height - 50)]
-        depth = 0
+        self.resources_frame = tk.Frame(self.root)
+        self.resources_frame.pack()
 
-        while True:
-            self.screen.fill(self.background_color)
+        for i in range(self.resources):
+            entry = tk.Entry(self.resources_frame, width=5)
+            entry.insert(tk.END, self.resources_available[i])
+            entry.configure(state='readonly')
+            entry.pack(side=tk.LEFT)
 
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
+        tk.Button(self.root, text="Randomize Matrix", command=self.randomize_matrices).pack()
+        tk.Button(self.root, text="Run Detection", command=self.run_detection).pack()
 
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_UP:
-                        depth = min(self.depth_limit - 1, depth + 1)
-                    elif event.key == pygame.K_DOWN:
-                        depth = max(0, depth - 1)
-                    elif event.key == pygame.K_ESCAPE:
-                        return "menu"
+        tk.Label(self.root, text="\nExplanation/Output:").pack()
+        self.explanation_text = tk.Text(self.root, height=10, width=50)
+        self.explanation_text.pack()
 
-            self.triangle_count = 3 ** depth
+    def randomize_matrices(self):
+        self.allocate_matrix = [[random.randint(0, 1) for _ in range(self.resources)] for _ in range(self.processes)]
+        self.request_matrix = [[random.randint(0, 1) for _ in range(self.resources)] for _ in range(self.processes)]
+        self.resources_available = [random.randint(0, 5) for _ in range(self.resources)]
 
-            count_text = self.font.render(f"Triangles: {self.triangle_count}", True, self.text_color)
-            self.screen.blit(count_text, (10, 10))
+        self.update_matrices()
+        self.clear_output()
 
-            formula_text = self.font.render(f"Formula: 3^{depth}", True, self.text_color)
-            self.screen.blit(formula_text, (self.width - formula_text.get_width() - 20, 10))
+    def update_matrices(self):
+        for row_frame in [self.allocate_frame, self.request_frame]:
+            for widget in row_frame.winfo_children():
+                widget.destroy()
 
-            footer = self.log_font.render(self.footer_text, True, self.text_color)
-            self.screen.blit(footer, (self.width - footer.get_width() - 10, self.height - footer.get_height() - 10))
+        for i in range(self.processes):
+            for j in range(self.resources):
+                entry = tk.Entry(self.allocate_frame, width=5)
+                entry.insert(tk.END, self.allocate_matrix[i][j])
+                entry.configure(state='readonly')
+                entry.pack(side=tk.LEFT)
 
-            if depth > 0:
-                self.sierpinski(vertices, depth, 0, 0)
+        for i in range(self.processes):
+            for j in range(self.resources):
+                entry = tk.Entry(self.request_frame, width=5)
+                entry.insert(tk.END, self.request_matrix[i][j])
+                entry.configure(state='readonly')
+                entry.pack(side=tk.LEFT)
 
-            pygame.display.flip()
-            self.clock.tick(5)
+        for widget in self.resources_frame.winfo_children():
+            widget.destroy()
 
+        for i in range(self.resources):
+            entry = tk.Entry(self.resources_frame, width=5)
+            entry.insert(tk.END, self.resources_available[i])
+            entry.configure(state='readonly')
+            entry.pack(side=tk.LEFT)
 
-        #this is the function to run the main menu
-    def main(self):
-        current_state = "menu"
+    def clear_output(self):
+        self.explanation_text.delete(1.0, tk.END)
 
-        while True:
-            if current_state == "menu":
-                current_state = self.main_menu()
-            elif current_state == "game":
-                current_state = self.game()
+    def run_detection(self):
+        deadlock_detected = self.detect_deadlock()
+        if deadlock_detected:
+            explanation = "DEADLOCK DETECTED!"
+            self.highlight_deadlock()
+        else:
+            explanation = "No Deadlock Detected."
+        self.display_output(explanation)
 
-        
-    def main_menu(self):
-        angle = 0
-        while True:
-            self.screen.fill(self.background_color)
+    def detect_deadlock(self):
+        explanation = ""
 
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
+        step_1 = "Step 1: Checking resource allocation..."
+        explanation += step_1 + "\n"
+        # Your deadlock detection algorithm logic here...
 
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_SPACE:
-                        return "game"
+        step_2 = "Step 2: Analyzing resource requests..."
+        explanation += step_2 + "\n"
+        # Your deadlock detection algorithm logic here...
 
-            angle += self.animation_speed
-            v1 = (self.width // 2 + int(200 * math.cos(angle)), 100)
-            v2 = (self.width // 2 + int(200 * math.cos(angle + 2 * math.pi / 3)), 500)
-            v3 = (self.width // 2 + int(200 * math.cos(angle + 4 * math.pi / 3)), 500)
-            self.draw_triangle([v1, v2, v3], self.border_color)
+        step_3 = "Step 3: Verifying resource availability..."
+        explanation += step_3 + "\n"
+        # Your deadlock detection algorithm logic here...
 
-            title_text = self.font.render("Sierpinski Triangle", True, self.text_color)
-            start_text = self.font.render("Press SPACE to start", True, self.text_color)
+        # Replace the return statement with the actual condition for deadlock detection
+        deadlock_detected = random.choice([True, False])
 
-            self.screen.blit(title_text, (self.width // 2 - title_text.get_width() // 2, 50))
-            self.screen.blit(start_text, (self.width // 2 - start_text.get_width() // 2, 100))
+        if deadlock_detected:
+            explanation += "DEADLOCK DETECTED!"
+            self.highlight_deadlock()
+        else:
+            explanation += "No Deadlock Detected."
 
-            footer = self.log_font.render(self.footer_text, True, self.text_color)
-            self.screen.blit(footer, (self.width - footer.get_width() - 10, self.height - footer.get_height() - 10))
+        self.display_output(explanation)
+        return deadlock_detected
 
-            pygame.display.flip()
-            self.clock.tick(60)
+    def highlight_deadlock(self):
+        for row in self.allocate_matrix:
+            for entry in row:
+                entry.configure(bg='red')
+
+        for row in self.request_matrix:
+            for entry in row:
+                entry.configure(bg='red')
+
+        for entry in self.resources_frame.winfo_children():
+            entry.configure(bg='red')
+
+    def display_output(self, explanation):
+        self.explanation_text.delete(1.0, tk.END)
+        self.explanation_text.insert(tk.END, explanation)
+
+def main():
+    root = tk.Tk()
+    app = DeadlockDetectionGUI(root)
+    root.mainloop()
 
 if __name__ == "__main__":
-    sierpinski = SierpinskiTriangle()
-    sierpinski.main()
+    main()
